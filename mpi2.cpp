@@ -111,12 +111,14 @@ int main(int argc, char* argv[]){
   int nomeTamanho, id, size, linhasTest = contaLinhas(argv[1]), linhasBase = contaLinhas(argv[2]), divisaoBase, restoBase;
   float speedUp, distancia = 0;
   char nomeProcessador[MPI_MAX_PROCESSOR_NAME];
-  distanciaClasse distClasse;
-  //dadosArquivo dadosTest[linhasTest], dadosBase[linhasBase];
+  distanciaClasse auxiliarLocal[linhasBase], distClasse;
+  dadosArquivo dadosTest[linhasTest], dadosBase[linhasBase];
   vector<distanciaClasse> vetMenordist;
   time_t inicio, fim;
 
 
+  insereVetor(linhasTest, dadosTest, argv[1]);
+  insereVetor(linhasBase, dadosBase, argv[2]);
   //printaVetor(dadosTest, linhasTest);
   //printaVetor(dadosBase, linhasBase);
 
@@ -126,6 +128,12 @@ int main(int argc, char* argv[]){
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   //MPI_Get_processor_name(nomeProcessador, &nomeTamanho);
 
+  cout << size << endl;
+
+  if(id==0){
+    cout << "Nome do arquivo de teste: " << argv[1] << endl << "Nome do arquivo de treino " << argv[2] << endl;
+    cout << "Calculando com MPI a distância entre as colunas das matrizes..." << endl << endl;
+  }
 
   inicio = time(NULL);
 
@@ -133,15 +141,13 @@ int main(int argc, char* argv[]){
   restoBase = linhasBase%(size-1);
 
   int tag = 1, tag2 = 2, tag3 = 3, posInicial = 0, posFinal = divisaoBase-1;
+  float valRecebido[linhasTest][dadosTest[0].linhasArquivo.size()];
   MPI_Status st;
 
 
-  if(id==0){
-    dadosArquivo dadosTest[linhasTest];
-    cout << "Nome do arquivo de teste: " << argv[1] << endl << "Nome do arquivo de treino " << argv[2] << endl;
-    cout << "Calculando com MPI a distância entre as colunas das matrizes..." << endl << endl;
-    insereVetor(linhasTest, dadosTest, argv[1]);
+  MPI_Barrier(MPI_COMM_WORLD);
 
+  if(id==0){
     for(int i=0;i<linhasTest;i++){
       for(int j=0;j<dadosTest[i].linhasArquivo.size();j++){
         for(int k=1;k<size;k++){
@@ -163,15 +169,14 @@ int main(int argc, char* argv[]){
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
+  cout << "Processo " << id << " saiu da barreira!" << endl;
+
+  //float valRecebido[linhasTest][dadosTest[0].linhasArquivo.size()];
 
   if(id>0){
-    dadosArquivo dadosBase[linhasBase];
-    float valRecebido[linhasTest][dadosBase[0].linhasArquivo.size()];
-
-    insereVetor(linhasBase, dadosBase, argv[2]);
 
     for(int i=0;i<linhasTest;i++){
-      for(int j=0;j<dadosBase[0].linhasArquivo.size();j++){
+      for(int j=0;j<dadosTest[0].linhasArquivo.size();j++){
         MPI_Recv(&valRecebido[i][j],1,MPI_FLOAT,0,tag,MPI_COMM_WORLD, &st);
       }
     }
